@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="alien.com.myapplication.MainActivity"
+    android:background="@color/abc_search_url_text_pressed">
+
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="READ TAG"
+        android:id="@+id/button2"
+        android:layout_below="@+id/textView"
+        android:layout_toEndOf="@+id/textView"
+        android:onClick="readTag" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Continous Inventory"
+        android:id="@+id/button4"
+        android:layout_below="@+id/button2"
+        android:layout_alignParentStart="true"
+        android:onClick="inventory"
+        android:shadowColor="#ffffff" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Read Memory"
+        android:id="@+id/button5"
+        android:layout_above="@+id/button6"
+        android:layout_alignStart="@+id/button6"
+        android:onClick="read" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Write Memory"
+        android:id="@+id/button6"
+        android:layout_alignBottom="@+id/button4"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="25dp"
+        android:onClick="write" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lock Fields"
+        android:id="@+id/button7"
+        android:layout_below="@+id/button4"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="39dp"
+        android:onClick="lock" />
+
+
+</RelativeLayout>
