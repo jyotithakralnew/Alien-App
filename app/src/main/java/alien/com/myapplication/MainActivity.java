@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 import com.alien.rfid.Bank;
+import com.alien.rfid.InvalidParamException;
 import com.alien.rfid.LockFields;
 import com.alien.rfid.LockType;
 import com.alien.rfid.Mask;
@@ -30,15 +31,15 @@ public class MainActivity extends AppCompatActivity {
 
     public void readTag(View view) {
         try {
-        // Get global RFID Reader instance
+            // Get global RFID Reader instance
             RFIDReader reader = RFID.open();
-        // Read a single tag
+            // Read a single tag
             RFIDResult result = reader.read();
             if (!result.isSuccess()) {
                 Toast.makeText(this, "No tags found ", Toast.LENGTH_LONG).show();
                 return;
             }
-        // Display tag EPC and RSSI
+            // Display tag EPC and RSSI
             Tag tag = (Tag) result.getData();
             String msg = tag.getEPC() + ", rssi=" + tag.getRSSI();
             Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
@@ -47,25 +48,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-        public void inventory(RFIDCallback callback, Mask mask []) throws ReaderException{
+
+    public void inventory(RFIDCallback callback, Mask mask []) throws ReaderException{
         try {
             // Get global RFID Reader instance
             final RFIDReader reader = RFID.open();
             if (reader.isRunning()) {
-                //Toast.makeText(this, "Continuous inventory not running ", Toast.LENGTH_LONG).show();
-
                 reader.inventory(new RFIDCallback() {
                                      @Override
                                      public void onTagRead(Tag tag) {
-
                                          String epc = tag.getEPC();
                                          double rssi = tag.getRSSI();
+                                         Toast.makeText(getApplicationContext(),"EPC: "+ epc + "  " + "RSSI: " + rssi , Toast.LENGTH_LONG).show();
+                                         Log.d("Continuous inventory: ",epc + "  " + rssi);
 
                                      }
                                  }, Mask.maskEPC("3035")
                 );
-
             }
+
             reader.stop();
         } catch (ReaderException e) {
             Log.d("DEMO", "continuousInventory: " + e);
@@ -74,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        public RFIDResult write(Bank bank, int wordOffset, String data, Mask mask [], String accessPassword []) throws ReaderException {
+    public RFIDResult write(Bank bank, int wordOffset, String data, Mask mask [], String accessPassword []) throws ReaderException {
         try {
             final RFIDReader reader = RFID.open();
             // Write "AABB" to the beginning of the USER memory bank of the tag which
@@ -91,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (ReaderException ex) {
             Toast.makeText(this, "error writing to memory" + ex, Toast.LENGTH_LONG).show();
         }
-            return null;
+        return null;
     }
 
 
@@ -132,6 +133,27 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
+    public void Mask(Bank bank, int bitOffset, int bitLength, String data){
+        try {
+            Mask mask;
+            mask = new Mask(Bank.EPC, 32, 16, "3035");
+        } catch (InvalidParamException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static Mask maskEPC(String data){
+        try {
+            Mask mask;
+            mask = Mask.maskEPC("3035");
+            return mask;
+        } catch (InvalidParamException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,9 +166,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-
+       //Mask[] m = new Mask[2];
+        //Mask m[0] = new Mask(Bank.EPC,12,15,);
+        //Mask m[1] = new Mask(Bank.RESERVED,16,32,);
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
+
         client.connect();
         Action viewAction = Action.newAction(
                 Action.TYPE_VIEW, // TODO: choose an action type.
