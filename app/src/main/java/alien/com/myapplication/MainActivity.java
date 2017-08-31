@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 import com.alien.rfid.Bank;
+import com.alien.rfid.InvalidParamException;
 import com.alien.rfid.LockFields;
 import com.alien.rfid.LockType;
 import com.alien.rfid.Mask;
@@ -20,6 +21,10 @@ import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 public class MainActivity extends AppCompatActivity {
 
     /**
@@ -27,18 +32,22 @@ public class MainActivity extends AppCompatActivity {
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+    Mask[] inventoryMask;
+    RFIDCallback inventoryCallBack;
+    HashMap<String,Integer> tagMap = new HashMap<String, Integer>();
+    RFIDReader reader;
 
     public void readTag(View view) {
         try {
-        // Get global RFID Reader instance
-            RFIDReader reader = RFID.open();
-        // Read a single tag
+            // Get global RFID Reader instance
+            reader = RFID.open();
+            // Read a single tag
             RFIDResult result = reader.read();
             if (!result.isSuccess()) {
                 Toast.makeText(this, "No tags found ", Toast.LENGTH_LONG).show();
                 return;
             }
-        // Display tag EPC and RSSI
+            // Display tag EPC and RSSI
             Tag tag = (Tag) result.getData();
             String msg = tag.getEPC() + ", rssi=" + tag.getRSSI();
             Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
@@ -47,12 +56,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-        public void inventory(RFIDCallback callback, Mask mask []) throws ReaderException{
+    public void continousInventory(View view) throws ReaderException{
         try {
             // Get global RFID Reader instance
-            final RFIDReader reader = RFID.open();
+            reader = RFID.open();
             if (reader.isRunning()) {
-                //Toast.makeText(this, "Continuous inventory not running ", Toast.LENGTH_LONG).show();
 
                 reader.inventory(new RFIDCallback() {
                                      @Override
@@ -60,7 +68,9 @@ public class MainActivity extends AppCompatActivity {
 
                                          String epc = tag.getEPC();
                                          double rssi = tag.getRSSI();
+                                         Toast.makeText(getApplicationContext(),"Inside Inventory\n EPC : "+ epc + "\nRSSI : "+ rssi,Toast.LENGTH_LONG).show();
 
+                                         addTag(tag);
                                      }
                                  }, Mask.maskEPC("3035")
                 );
@@ -73,47 +83,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    public void addTag(final Tag tag) {
+        //check for empty tag
+        if(tag.getEPC().isEmpty()) return;
 
-        public RFIDResult write(Bank bank, int wordOffset, String data, Mask mask [], String accessPassword []) throws ReaderException {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                // for now we are just storing the tag.EPC but we can store the whole tag object
+                if(tagMap.containsKey(tag.getEPC())){
+                    tagMap.put(tag.getEPC(),tagMap.get(tag.getEPC())+1);
+                }else{
+                    tagMap.put(tag.getEPC(),1);
+                }
+                Toast.makeText(getApplicationContext(),"Yaayy!!! EPC Stored",Toast.LENGTH_LONG).show();
+                Log.d("Recent tag stored : ", tag.getEPC());
+                for(Map.Entry<String, Integer> m : tagMap.entrySet()){
+                    Log.d("All Tags Stored : ","EPC : " +m.getKey() + "Quantity : "+ m.getValue());
+                }
+            }
+        });
+    }
+
+
+
+    public RFIDResult writeTag(View view) throws ReaderException {
         try {
-            final RFIDReader reader = RFID.open();
-            // Write "AABB" to the beginning of the USER memory bank of the tag which
-            // EPC starts with "3035"
+            reader = RFID.open();
+            Toast.makeText(this, "Adding default data", Toast.LENGTH_LONG).show();
+            // For now I am just writing a default value to the tags so that I can validate it later
             RFIDResult writeResult = reader.write(Bank.USER, 0, "AABB", Mask.maskEPC("3035"));
             if (writeResult.isSuccess()) {
                 // Write operation succeeded.
                 Toast.makeText(this, "write successful", Toast.LENGTH_LONG).show();
                 return writeResult;
             }
-            // Read 1 word from the beginning of the USER memory bank of the tag which
-            // EPC starts with "3035"
 
         } catch (ReaderException ex) {
             Toast.makeText(this, "error writing to memory" + ex, Toast.LENGTH_LONG).show();
-        }
-            return null;
-    }
-
-
-    public RFIDResult read(Bank bank, int wordPointer, int wordCount, Mask mask [], String accessPassword []) throws ReaderException{
-        try {
-            final RFIDReader reader = RFID.open();
-            RFIDResult readResult = reader.read(Bank.USER, 0, 1, Mask.maskEPC("3035"));
-            if (readResult.isSuccess()) {
-                // Read operation succeeded.
-                String data = (String) readResult.getData(); // data returned as a hex string
-                Toast.makeText(this, "read successful" + data, Toast.LENGTH_LONG).show();
-                return readResult;
-            }
-        } catch (ReaderException ext) {
-            Toast.makeText(this, "error reading from memory" + ext, Toast.LENGTH_LONG).show();
         }
         return null;
     }
 
     public RFIDResult lock(LockFields fieldBitmap, LockType lockType, Mask mask[], String accessPassword[]) throws ReaderException {
         try {
-            RFIDReader reader = RFID.open();
+            reader = RFID.open();
             RFIDResult result = reader.read();
             LockFields fields = new LockFields(
                     LockFields.EPC | LockFields.USER | LockFields.ACCESS_PWD | LockFields.KILL_PWD);
@@ -131,11 +145,34 @@ public class MainActivity extends AppCompatActivity {
         }
         return null;
     }
+    public void Mask(Bank bank, int bitOffset, int bitLength, String data){
+        try {
+            Mask mask;
+            mask = new Mask(Bank.EPC, 32, 16, "3035");
+        } catch (InvalidParamException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static Mask maskEPC(String data){
+        try {
+            Mask mask;
+            mask = Mask.maskEPC("3035");
+            return mask;
+        } catch (InvalidParamException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
@@ -159,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
                 Uri.parse("android-app://alien.com.myapplication/http/host/path")
         );
         AppIndex.AppIndexApi.start(client, viewAction);
+
     }
 
     @Override
